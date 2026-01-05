@@ -1,0 +1,36 @@
+{
+  "name": "n8n-nodes-doppelganger",
+  "version": "0.1.0",
+  "description": "n8n node for running Doppelganger tasks",
+  "license": "Apache-2.0",
+  "keywords": [
+    "n8n-community-node-package",
+    "doppelganger",
+    "automation"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && copyfiles -u 1 \"src/nodes/**/*.{png,svg}\" dist"
+  },
+  "dependencies": {
+    "n8n-workflow": "^1.0.0"
+  },
+  "devDependencies": {
+    "copyfiles": "^2.4.1",
+    "n8n-core": "^1.0.0",
+    "typescript": "^5.4.0"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "nodes": [
+      "dist/nodes/Doppelganger/Doppelganger.node.js"
+    ],
+    "credentials": [
+      "dist/credentials/DoppelgangerApi.credentials.js"
+    ]
+  }
+}

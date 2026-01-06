@@ -17,7 +17,7 @@ export class Doppelganger implements INodeType {
     version: 1,
     description: 'Run a Doppelganger task via the API',
     defaults: {
-      name: 'Doppelganger',
+      name: 'Execute Task',
     },
     inputs: ['main'],
     outputs: ['main'],

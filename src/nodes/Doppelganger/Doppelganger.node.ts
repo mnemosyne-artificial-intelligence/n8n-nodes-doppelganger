@@ -21,6 +21,7 @@ export class Doppelganger implements INodeType {
     },
     inputs: ['main'],
     outputs: ['main'],
+    usableAsTool: true,
     credentials: [
       {
         name: 'doppelgangerApi',

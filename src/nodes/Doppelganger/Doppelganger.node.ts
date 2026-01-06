@@ -10,14 +10,14 @@ import { NodeOperationError } from 'n8n-workflow';
 
 export class Doppelganger implements INodeType {
   description: INodeTypeDescription = {
-    displayName: 'doppelganger',
+    displayName: 'Doppelganger',
     name: 'doppelganger',
     icon: 'file:icon.png',
     group: ['transform'],
     version: 1,
     description: 'Run a Doppelganger task via the API',
     defaults: {
-      name: 'doppelganger',
+      name: 'Doppelganger',
     },
     inputs: ['main'],
     outputs: ['main'],
@@ -29,6 +29,21 @@ export class Doppelganger implements INodeType {
     ],
     properties: [
       {
+        displayName: 'Operation',
+        name: 'operation',
+        type: 'options',
+        noDataExpression: true,
+        options: [
+          {
+            name: 'Execute Task',
+            value: 'executeTask',
+            description: 'Run a Doppelganger task',
+            action: 'Execute a task',
+          },
+        ],
+        default: 'executeTask',
+      },
+      {
         displayName: 'Task ID',
         name: 'taskId',
         type: 'string',
@@ -37,12 +52,36 @@ export class Doppelganger implements INodeType {
         description: 'Task ID from the Doppelganger dashboard',
       },
       {
-        displayName: 'Variables (JSON)',
+        displayName: 'Variables',
         name: 'variables',
-        type: 'json',
-        default: '{}',
+        type: 'fixedCollection',
+        default: {},
         required: false,
-        description: 'JSON object to override task variables',
+        description: 'Optional task variables to override',
+        typeOptions: {
+          multipleValues: true,
+        },
+        options: [
+          {
+            name: 'values',
+            displayName: 'Variable',
+            values: [
+              {
+                displayName: 'Name',
+                name: 'name',
+                type: 'string',
+                default: '',
+                required: true,
+              },
+              {
+                displayName: 'Value',
+                name: 'value',
+                type: 'string',
+                default: '',
+              },
+            ],
+          },
+        ],
       },
     ],
   };
@@ -52,21 +91,26 @@ export class Doppelganger implements INodeType {
     const returnData: INodeExecutionData[] = [];
 
     for (let i = 0; i < items.length; i++) {
-      const taskId = this.getNodeParameter('taskId', i) as string;
-      const variablesRaw = this.getNodeParameter('variables', i) as unknown;
+      const operation = this.getNodeParameter('operation', i) as string;
+      if (operation !== 'executeTask') {
+        throw new NodeOperationError(this.getNode(), 'Unsupported operation.', {
+          itemIndex: i,
+        });
+      }
 
-      let variables: IDataObject = {};
-      if (variablesRaw) {
-        if (typeof variablesRaw === 'string') {
-          try {
-            variables = JSON.parse(variablesRaw) as IDataObject;
-          } catch (error) {
-            throw new NodeOperationError(this.getNode(), 'Variables must be valid JSON.', {
-              itemIndex: i,
-            });
+      const taskId = this.getNodeParameter('taskId', i) as string;
+      const variablesRaw = this.getNodeParameter('variables', i) as {
+        values?: Array<{ name?: string; value?: string }>;
+      };
+
+      const variables: IDataObject = {};
+      if (variablesRaw?.values?.length) {
+        for (const entry of variablesRaw.values) {
+          const key = (entry.name || '').trim();
+          if (!key) {
+            continue;
           }
-        } else {
-          variables = variablesRaw as IDataObject;
+          variables[key] = entry.value ?? '';
         }
       }
 

@@ -2,13 +2,52 @@ import type {
   IDataObject,
   IExecuteFunctions,
   IHttpRequestMethods,
+  ILoadOptionsFunctions,
   INodeExecutionData,
+  INodePropertyOptions,
   INodeType,
   INodeTypeDescription,
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
 export class Doppelganger implements INodeType {
+  methods = {
+    loadOptions: {
+      async getTasks(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+        const credentials = await this.getCredentials('doppelgangerApi');
+        const baseUrl = String(credentials.baseUrl || '').replace(/\/+$/, '');
+
+        if (!baseUrl) {
+          return [];
+        }
+
+        const options = {
+          method: 'GET' as IHttpRequestMethods,
+          url: `${baseUrl}/api/tasks/list`,
+          json: true,
+        };
+
+        const response = await this.helpers.requestWithAuthentication.call(
+          this,
+          'doppelgangerApi',
+          options,
+        );
+
+        const tasks = (response as IDataObject)?.tasks as IDataObject[] | undefined;
+        if (!Array.isArray(tasks)) {
+          return [];
+        }
+
+        return tasks
+          .map((task) => ({
+            name: String(task?.name || task?.id || ''),
+            value: String(task?.id || ''),
+          }))
+          .filter((option) => option.value);
+      },
+    },
+  };
+
   description: INodeTypeDescription = {
     displayName: 'Doppelganger',
     name: 'doppelganger',
@@ -47,7 +86,10 @@ export class Doppelganger implements INodeType {
       {
         displayName: 'Task ID',
         name: 'taskId',
-        type: 'string',
+        type: 'options',
+        typeOptions: {
+          loadOptionsMethod: 'getTasks',
+        },
         default: '',
         required: true,
         description: 'Task ID from the Doppelganger dashboard',

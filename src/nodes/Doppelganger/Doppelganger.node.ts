@@ -21,29 +21,37 @@ export class Doppelganger implements INodeType {
           return [];
         }
 
-        const options = {
-          method: 'GET' as IHttpRequestMethods,
-          url: `${baseUrl}/api/tasks/list`,
-          json: true,
-        };
+        try {
+          const options = {
+            method: 'GET' as IHttpRequestMethods,
+            url: `${baseUrl}/api/tasks/list`,
+            json: true,
+          };
 
-        const response = await this.helpers.requestWithAuthentication.call(
-          this,
-          'doppelgangerApi',
-          options,
-        );
+          const response = await this.helpers.requestWithAuthentication.call(
+            this,
+            'doppelgangerApi',
+            options,
+          );
 
-        const tasks = (response as IDataObject)?.tasks as IDataObject[] | undefined;
-        if (!Array.isArray(tasks)) {
-          return [];
+          const payload = response as IDataObject;
+          const tasks = Array.isArray(payload) ? payload : (payload.tasks as IDataObject[] | undefined);
+          if (!Array.isArray(tasks)) {
+            return [];
+          }
+
+          return tasks
+            .map((task) => ({
+              name: String(task?.name || task?.id || ''),
+              value: String(task?.id || ''),
+            }))
+            .filter((option) => option.value)
+            .sort((a, b) => a.name.localeCompare(b.name));
+        } catch (error) {
+          throw new NodeOperationError(this.getNode(), 'Error fetching options from Doppelganger.', {
+            itemIndex: 0,
+          });
         }
-
-        return tasks
-          .map((task) => ({
-            name: String(task?.name || task?.id || ''),
-            value: String(task?.id || ''),
-          }))
-          .filter((option) => option.value);
       },
     },
   };
@@ -84,7 +92,7 @@ export class Doppelganger implements INodeType {
         default: 'executeTask',
       },
       {
-        displayName: 'Task ID',
+        displayName: 'Task',
         name: 'taskId',
         type: 'options',
         typeOptions: {
@@ -92,7 +100,7 @@ export class Doppelganger implements INodeType {
         },
         default: '',
         required: true,
-        description: 'Task ID from the Doppelganger dashboard',
+        description: 'Select the task to run',
       },
       {
         displayName: 'Variables',

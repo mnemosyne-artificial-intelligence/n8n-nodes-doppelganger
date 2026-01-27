@@ -1,42 +1,98 @@
 # n8n-nodes-doppelganger
 
-Official n8n community node for running Doppelganger tasks via the local API.
+Official n8n community node that lets you run Doppelganger tasks directly through your workflow using the local or remote Doppelganger API.
 
-## Install
+## Highlights
 
-### Classic n8n Community Nodes (recommended)
+- Single `Execute Task` operation that posts to `POST /tasks/:id/api` with optional variables.
+- Credential-based authentication, so each workflow can point at a different Doppelganger server or API key.
+- Task dropdown is populated dynamically by calling `/api/tasks/list`, keeping the node synchronized with what the server exposes.
 
-1. In n8n, open **Settings** -> **Community Nodes**.
-2. Enter the package name: `n8n-nodes-doppelganger`.
-3. Install and restart n8n if prompted.
+## Requirements
 
-### Manual
+- n8n (cloud or self-hosted) with community nodes enabled.
+- Doppelganger server reachable from wherever n8n is running (default `http://localhost:11345`).
+- Valid API key created via Doppelganger Settings.
+
+## Documentation
+
+- For a full walkthrough of the n8n integration, see the official Doppelganger docs: https://doppelgangerdev.com/docs/n8n-integration.
+
+## Installation
+
+### Classic (recommended)
+
+1. In n8n, go to **Settings -> Community Nodes**.
+2. Enter `n8n-nodes-doppelganger`.
+3. Install the package and restart n8n if prompted.
+
+### Manual (from source)
 
 ```bash
 npm install
 npm run build
 ```
 
-Then add the package in n8n as a community node or publish to npm and install from there.
-## Setup
+This compiles the TypeScript sources under `src/` to `dist/`, copies the bundled assets, and makes the package usable as a community node.
 
-1. Create Doppelganger API credentials in n8n.
-   - Base URL: `http://localhost:11345` (or your server)
-   - API Key: from Doppelganger Settings
-2. Add the **Doppelganger** node to a workflow.
-3. Set your Task ID and optional variables (JSON).
+## Configuration
 
-## What it does
+### Credentials
 
-Calls:
+The node uses the `Doppelganger API` credential type, which captures:
+
+- **Base URL** - defaults to `http://localhost:11345`. Trim trailing slashes.
+- **API Key** - stored securely and sent in the `x-api-key` header on every request.
+
+When you connect the credential, the node can reach the `/api/tasks/list` endpoint to populate the **Task** dropdown.
+
+### Node fields
+
+- **Operation** - currently only `Execute Task`.
+- **Task** - choose a task ID from the loaded list; the list is sorted by name and falls back to the raw ID when no name exists.
+- **Variables** - optional fixed collection of key/value pairs that are sent in the request body under `variables`. Leave blank to trigger the task with its default inputs.
+
+## Usage
+
+1. Add the `Doppelganger` node to your workflow and attach it to the steps that should trigger a task.
+2. Select your `Doppelganger API` credential.
+3. Pick the task to run from the dropdown; it calls `/api/tasks/list` automatically via the credential.
+4. Optionally define `Variables` to override or inject runtime data, either by hardcoding strings or by using expressions that reference previous nodes.
+
+Each execution performs:
 
 ```
-POST /tasks/:id/api
+POST {baseUrl}/tasks/:taskId/api
+Headers:
+  x-api-key: {api key}
+Body:
+  {
+    "variables": {
+      "<name>": "<value>",
+      ...
+    }
+  }
 ```
 
-Auth header: `x-api-key`.
+The node returns the JSON response from Doppelganger as the output data for downstream nodes.
 
-## Links
+## Troubleshooting
 
-- Homepage: https://doppelgangerdev.com
-- Docker: https://hub.docker.com/r/mnemosyneai/doppelganger
+- **Tasks list is empty** - confirm the credential's Base URL/API key, ensure n8n can reach the Doppelganger server, and that `/api/tasks/list` returns a payload.
+- **Task run fails with HTTP error** - review the Doppelganger logs for task-specific errors and confirm that the task ID exists.
+- **Variables are ignored** - make sure each entry in the `Variables` collection has a non-empty `Name`; values can be empty strings but names are required.
+
+## Development
+
+- `npm run build` compiles TypeScript sources and copies icons into `dist/`.
+- After building, publish the package to npm (if desired) or load the folder as a local community node archive.
+
+## Contributing
+
+1. Fork this repo, implement fixes or nodes in `src/`, and push a topic branch.
+2. Run `npm run build` to regenerate `dist/` before submitting a pull request.
+3. Describe how to reproduce or test your changes in the PR description.
+
+## License
+
+Apache License 2.0 - see [LICENSE](LICENSE).
